@@ -1,23 +1,21 @@
 class Solution:
-    def countDigitOne(self, n: int) -> int:
-        i = 1
-        total_1 = 0
-        while i <= n:
-            curr_pos = (n // i) % 10
-            before_pos = n // (i*10)
-            after_pos = n % i
+    def wiggleMaxLength(self, nums: list[int]) -> int:
+        n = len(nums)
+        if n == 1:
+            return 1
+        count = 1
+        prev_diff, curr_diff = 0, 0
+        for i in range(n-1):
+            curr_diff = nums[i+1] - nums[i]
 
-            # add cycle
-            total_1 += before_pos * i
-
-            if curr_pos == 1:  # add the root of cycle like 1134
-                total_1 += after_pos + 1
-            elif curr_pos > 1:
-                total_1 += i
-
-            i *= 10
-        return total_1
+            # curr_diff decide is it allow to add or not to prevent equal num
+            if (curr_diff > 0 and prev_diff <= 0) or (curr_diff < 0 and prev_diff >= 0):
+                count += 1
+                prev_diff = curr_diff
+        return count
 
 
 sol = Solution()
-print(sol.countDigitOne(13))
+# print(sol.wiggleMaxLength([1, 7, 4, 9, 2, 5]))
+# print(sol.wiggleMaxLength([0, 0]))
+print(sol.wiggleMaxLength([1, 17, 5, 10, 13, 15, 10, 5, 16, 8]))

@@ -270,3 +270,49 @@ def calculateMinimumHP(self, dungeon: list[list[int]]) -> int:
 
             dp[j] = max(1, point_need - dungeon[i][j])
     return dp[0]
+
+
+class TrieNode:
+    def __init__(self):
+        self.min_len = float('inf')
+        self.children = {}
+        self.idx = -1
+
+    def insert_node(self, rword: str, idx: int):
+        curr = self
+
+        if len(rword) < curr.min_len:
+            curr.min_len = len(rword)
+            curr.idx = idx
+        for c in rword:
+            if c not in curr.children:
+                curr.children[c] = TrieNode()
+            curr = curr.children[c]
+
+            if curr.min_len > len(rword):
+                curr.min_len = len(rword)
+                curr.idx = idx
+
+
+class Solution:
+    def stringIndices(self, wordsContainer: list[str], wordsQuery: list[str]) -> list[int]:
+        root = TrieNode()
+        for i, word in enumerate(wordsContainer):
+            rword = word[::-1]
+
+            root.insert_node(rword, i)
+        ans = []
+        for query in wordsQuery:
+            curr = root
+            cquery = query[::-1]
+            for c in cquery:
+                if c in curr.children:
+                    curr = curr.children[c]
+                else:
+                    break
+            ans.append(curr.idx)
+        return ans
+
+
+sol = Solution()
+print(sol.stringIndices(["abcd", "bcd", "xbcd"], ["cd", "bcd", "xyz"]))
