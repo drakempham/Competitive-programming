@@ -1,130 +1,59 @@
 import sys
-from collections import deque
 
-MOD = 998244353
-C = 26
-
-
-def mat_mul(a, b):
-    n = len(a)
-    res = [[0] * n for _ in range(n)]
-
-    for i in range(n):
-        row = res[i]
-
-        for k in range(n):
-            x = a[i][k]
-            if not x:
-                continue
-
-            for j in range(n):
-                row[j] += x * b[k][j]
-
-        for j in range(n):
-            row[j] %= MOD
-
-    return res
-
-
-def apply(v, mat):
-    n = len(v)
-    res = [0] * n
-
-    for i in range(n):
-        x = v[i]
-        if not x:
-            continue
-
-        for j in range(n):
-            res[j] += x * mat[i][j]
-
-    for i in range(n):
-        res[i] %= MOD
-
-    return res
+input = sys.stdin.readline
 
 
 def solve():
-    data = sys.stdin.buffer.read().split()
-    n = int(data[0])
-    k = int(data[1])
-    s = data[2:]
+    n = int(input())
+    arr = list(map(int, input().split()))
 
-    nxt = [[-1] * C]
-    fail = [0]
-    dead = [False]
+    need_layer = [0] + arr
 
-    for word in s:
-        u = 0
+    for i in range(1, n + 1):
+        if need_layer[i] >= i:
+            print("NO")
+            return
 
-        for ch in word:
-            c = ch - 97
+    pos = [1] * (n + 1)
+    mov = []
 
-            if nxt[u][c] == -1:
-                nxt[u][c] = len(nxt)
-                nxt.append([-1] * C)
-                fail.append(0)
-                dead.append(False)
+    def build(k, goal):
+        if k == 0:
+            return
 
-            u = nxt[u][c]
+        if pos[k] != goal[k]:
+            tmp = [0] * (n + 1)
 
-        dead[u] = True
+            cur = pos[k]
+            nxt = goal[k]
+            # no smaller layer can be at nxt.
 
-    q = deque()
+            for layer in range(1, k):
+                if layer >= k - need_layer[k]:
+                    tmp[layer] = cur
+                else:
+                    tmp[layer] = 6 - cur - nxt
 
-    for c in range(C):
-        v = nxt[0][c]
+            build(k - 1, tmp)
 
-        if v == -1:
-            nxt[0][c] = 0
-        else:
-            q.append(v)
+            mov.append((k, cur, nxt))
+            pos[k] = nxt
 
-    while q:
-        u = q.popleft()
-        dead[u] |= dead[fail[u]]
+        build(k - 1, goal)
 
-        for c in range(C):
-            v = nxt[u][c]
+    goal = [0] * (n + 1)
+    for i in range(1, n + 1):
+        goal[i] = 3
 
-            if v == -1:
-                nxt[u][c] = nxt[fail[u]][c]
-            else:
-                fail[v] = nxt[fail[u]][c]
-                q.append(v)
+    build(n, goal)
 
-    pos = [-1] * len(nxt)
-    nodes = []
-
-    for i in range(len(nxt)):
-        if not dead[i]:
-            pos[i] = len(nodes)
-            nodes.append(i)
-
-    m = len(nodes)
-    trans = [[0] * m for _ in range(m)]
-
-    for u in nodes:
-        i = pos[u]
-
-        for c in range(C):
-            v = nxt[u][c]
-
-            if not dead[v]:
-                trans[i][pos[v]] += 1
-
-    dp = [0] * m
-    dp[pos[0]] = 1
-
-    while n:
-        if n & 1:
-            dp = apply(dp, trans)
-
-        trans = mat_mul(trans, trans)
-        n >>= 1
-
-    print(sum(dp) % MOD)
+    print("YES")
+    print(len(mov))
+    for layer, frm, to in mov:
+        print(layer, frm, to)
 
 
 if __name__ == "__main__":
-    solve()
+    t = int(input())
+    for _ in range(t):
+        solve()
