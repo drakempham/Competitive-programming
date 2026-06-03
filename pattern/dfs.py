@@ -71,7 +71,7 @@ class Codec:
 
     #     return ",".join(ans[:j+1])
 
-    # def deserialize(self, data):
+    def deserialize(self, data):
         nodes = data.split(",")
         if nodes[0] == '-':
             return None
@@ -145,3 +145,28 @@ print(sol.deserialize(serialize_data))
 
 # print(sol.serialize(None))
 # print(sol.deserialize(sol.serialize(None)))
+
+class Solution:
+    def lexicalOrder(self, n: int) -> list[int]:
+        ans = []
+        # dfs(i) lexographical start at i
+
+        def dfs(num: int):
+            ans.append(num)
+
+            for j in range(10):
+                new_num = num*10 + j
+
+                if new_num > n:
+                    break
+                dfs(new_num)
+
+        for i in range(1, 10):
+            if i > n:
+                break
+            dfs(i)
+        return ans
+
+
+sol = Solution()
+print(sol.lexicalOrder(108))
