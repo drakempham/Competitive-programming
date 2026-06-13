@@ -1,3 +1,4 @@
+from collections import deque
 from functools import lru_cache
 from typing import List
 
@@ -354,3 +355,68 @@ class Solution:
 
 sol = Solution()
 print(sol.maxCoins([3, 1, 5]))
+
+
+class Solution:
+    # def maximumSum(self, nums: list[int], m: int, l: int, r: int) -> int:
+    #     n = len(nums)
+    #     prefix = [0] * (n+1)
+    #     for i in range(n):
+    #         prefix[i+1] = prefix[i] + nums[i]
+    #     # m subarray has length n
+    #     dp = [[-float('inf')] * (n+1) for _ in range(m+1)]
+
+    #     for i in range(n+1):
+    #         dp[0][i] = 0
+    #     ans = -float('inf')
+    #     for length in range(1, m+1):
+    #         for j in range(1, n+1):
+    #             # skip j
+    #             dp[length][j] = dp[length][j-1]
+
+    #             for length_sub in range(l, r+1):
+    #                 if j - length_sub < 0:
+    #                     break
+
+    #                 dp[length][j] = max(dp[length][j], dp[length-1][j-length_sub] +
+    #                                     prefix[j] - prefix[j-length_sub])
+    #         ans = max(ans, dp[length][n])
+    #     return ans
+
+    # optimzie version
+    def maximumSum(self, nums: list[int], m: int, l: int, r: int) -> int:
+        n = len(nums)
+        prefix = [0] * (n+1)
+        for i in range(n):
+            prefix[i+1] = prefix[i] + nums[i]
+        # m subarray has length n
+        dp = [[-float('inf')] * (n+1) for _ in range(m+1)]
+
+        for i in range(n+1):
+            dp[0][i] = 0
+        ans = -float('inf')
+        for length in range(1, m+1):
+            # queue sort desc
+            queue = deque()
+            for j in range(1, n+1):
+                # add new_val to queue
+                curr_pos = j - l
+                if j-l >= 0:  # still update dp
+                    curr_val = dp[length-1][j-l] - prefix[j-l]
+                    while queue and queue[-1][1] <= curr_val:
+                        queue.pop()
+                    queue.append((curr_pos, curr_val))
+
+                # remove invalid idx
+                while queue and queue[0][0] < j - r:
+                    queue.popleft()
+
+                # update value
+                dp[length][j] = max(dp[length][j-1], queue[0][1] + prefix[j])
+
+            ans = max(ans, dp[length][n])
+        return ans
+
+
+sol = Solution()
+print(sol.maximumSum([4, 1, -5, 2], 2, 1, 3))

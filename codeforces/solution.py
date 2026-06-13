@@ -1,59 +1,77 @@
 import sys
+from collections import defaultdict, Counter, deque
+from bisect import bisect_left, bisect_right
+from heapq import heapify, heappush, heappop
+from math import gcd, lcm, isqrt
+from functools import lru_cache
 
-input = sys.stdin.readline
+# ---------------- Debug ---------------- #
+
+
+def debug(*args, sep=" ", end="\n"): print(*
+                                           args, sep=sep, end=end, file=sys.stderr)
+
+# ---------------- System ---------------- #
+
+
+if hasattr(sys, "set_int_max_str_digits"):
+    sys.set_int_max_str_digits(0)
+
+sys.setrecursionlimit(300000)
+
+input = sys.stdin.buffer.readline
+
+# ---------------- Constants ---------------- #
+
+MOD = 10**9 + 7
+
+DIR4 = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+DIR8 = [
+    (1, 0), (-1, 0), (0, 1), (0, -1),
+    (1, 1), (1, -1), (-1, 1), (-1, -1)
+]
+
+# ---------------- Input helpers ---------------- #
+
+
+def read_int():
+    return int(input())
+
+
+def read_str():
+    return input().decode().strip()
+
+
+def read_ints():
+    return map(int, input().split())
+
+
+def read_list():
+    return list(map(int, input().split()))
+
+
+def read_grid(n):
+    return [input().decode().strip() for _ in range(n)]
+
+
+def read_matrix(n):
+    return [read_list() for _ in range(n)]
+
+# ---------------- Solve ---------------- #
 
 
 def solve():
-    n = int(input())
-    arr = list(map(int, input().split()))
+    a, n = read_ints()  # n = 2 -> skip
+    d1, d2 = read_ints()
 
-    need_layer = [0] + arr
+    ans = float('inf')
 
-    for i in range(1, n + 1):
-        if need_layer[i] >= i:
-            print("NO")
-            return
 
-    pos = [1] * (n + 1)
-    mov = []
-
-    def build(k, goal):
-        if k == 0:
-            return
-
-        if pos[k] != goal[k]:
-            tmp = [0] * (n + 1)
-
-            cur = pos[k]
-            nxt = goal[k]
-            # no smaller layer can be at nxt.
-
-            for layer in range(1, k):
-                if layer >= k - need_layer[k]:
-                    tmp[layer] = cur
-                else:
-                    tmp[layer] = 6 - cur - nxt
-
-            build(k - 1, tmp)
-
-            mov.append((k, cur, nxt))
-            pos[k] = nxt
-
-        build(k - 1, goal)
-
-    goal = [0] * (n + 1)
-    for i in range(1, n + 1):
-        goal[i] = 3
-
-    build(n, goal)
-
-    print("YES")
-    print(len(mov))
-    for layer, frm, to in mov:
-        print(layer, frm, to)
+def main():
+    t = read_int()
+    for _ in range(t):
+        solve()
 
 
 if __name__ == "__main__":
-    t = int(input())
-    for _ in range(t):
-        solve()
+    main()

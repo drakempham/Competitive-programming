@@ -1,3 +1,5 @@
+import random
+import bisect
 from typing import List
 
 
@@ -45,7 +47,7 @@ class MaximizeDistanceBetweenPointsOnASquare:
             # Nhân đôi mảng để xử lý vòng tròn thay vì dùng %
             sorted_pts = [(p[1], p[2]) for p in flattern_arr]
             sorted_pts = sorted_pts + sorted_pts
-            
+
             # Dùng Two Pointers tìm điểm tiếp theo thỏa mãn >= threshold
             next_pt = [2 * n] * (2 * n)
             j = 1
@@ -59,7 +61,7 @@ class MaximizeDistanceBetweenPointsOnASquare:
                         break
                     j += 1
                 next_pt[i] = j
-                
+
             # Tìm bước nhảy index ngắn nhất
             min_diff = 2 * n + 1
             i_min = -1
@@ -67,11 +69,11 @@ class MaximizeDistanceBetweenPointsOnASquare:
                 if next_pt[i] - i < min_diff:
                     min_diff = next_pt[i] - i
                     i_min = i
-                    
+
             # Pigeonhole Principle: Nếu bước nhảy ngắn nhất vượt quá n // k thì không gom đủ k điểm
             if min_diff > n // k:
                 return False
-                
+
             # Chỉ check các điểm bắt đầu trong khoảng bước nhảy ngắn nhất
             for start_idx in range(i_min, next_pt[i_min] + 1):
                 start = start_idx % n
@@ -95,15 +97,18 @@ class MaximizeDistanceBetweenPointsOnASquare:
 sol = MaximizeDistanceBetweenPointsOnASquare()
 print("MaximizeDistanceBetweenPointsOnASquare")
 print(sol.maxDistance(side=2, points=[[0, 2], [2, 0], [2, 2], [0, 0]], k=4))
-print(sol.maxDistance(side=2, points=[[0,0],[1,2],[2,0], [2,2], [2,1]], k=4))
+print(sol.maxDistance(side=2, points=[
+      [0, 0], [1, 2], [2, 0], [2, 2], [2, 1]], k=4))
 print(sol.maxDistance(side=4, points=[
       [4, 4], [3, 4], [2, 0], [4, 3], [4, 0]], k=4))
-print(sol.maxDistance(side=15, points=[[0,11],[15,15],[0,0],[0,8],[14,0]], k=4))
+print(sol.maxDistance(side=15, points=[
+      [0, 11], [15, 15], [0, 0], [0, 8], [14, 0]], k=4))
+
 
 class Solution:
     def countKthRoots(self, l: int, r: int, k: int) -> int:
-        def bound_left(): # ceil(roots_k(l))
-            left, right = 0,int(l**(1/k)) + 1 if l > 0 else 0
+        def bound_left():  # ceil(roots_k(l))
+            left, right = 0, int(l**(1/k)) + 1 if l > 0 else 0
             while left < right:
                 mid = left + (right-left) // 2
                 perf = mid**k
@@ -114,7 +119,8 @@ class Solution:
                 else:
                     right = mid
             return left
-        def bound_right(): # floor(roos_k(r))
+
+        def bound_right():  # floor(roos_k(r))
             left, right = 0, int(r**(1/k)) + 1 if r > 0 else 0
             while left <= right:
                 mid = left + (right-left) // 2
@@ -128,8 +134,75 @@ class Solution:
             return left - 1
         return bound_right() - bound_left() + 1
 
+
 sol = Solution()
-print(sol.countKthRoots(1,9,3))
-print(sol.countKthRoots(8,30,2))
-print(sol.countKthRoots(19,22,1))
-print(sol.countKthRoots(2,3,2))
+print(sol.countKthRoots(1, 9, 3))
+print(sol.countKthRoots(8, 30, 2))
+print(sol.countKthRoots(19, 22, 1))
+print(sol.countKthRoots(2, 3, 2))
+
+
+class Solution:
+    def findNthDigit(self, n: int) -> int:
+        def count_digits(x: int) -> int:
+            total = 0
+            length = 1
+            start = 1
+
+            while start <= x:
+                end = min(x, start * 10 - 1)
+                total += (end - start + 1) * length
+
+                length += 1
+                start *= 10
+
+            return total
+
+        # Binary search smallest number whose prefix has at least n digits
+        left, right = 1, n
+
+        while left < right:
+            mid = (left + right) // 2
+
+            if count_digits(mid) >= n:
+                right = mid
+            else:
+                left = mid + 1
+
+        num = left
+
+        before = count_digits(num - 1)
+
+        idx = n - before - 1
+
+        return int(str(num)[idx])
+
+
+sol = Solution()
+print(sol.findNthDigit(11))
+
+
+class Solution:
+
+    def __init__(self, rects: list[list[int]]):
+        self.rects = rects
+
+        self.pts = []
+
+        for rect in rects:
+            a, b, x, y = rect
+            pts_size = (x-a+1)*(y-b+1)
+            if self.pts:
+                pts_size += self.pts[-1]
+            self.pts.append(pts_size)
+        self.total = self.pts[-1]
+
+    def pick(self) -> list[int]:
+        k = random.randint(1, self.total)
+        idx = bisect.bisect_left(self.pts, k)
+        a, b, x, y = self.rects[idx]
+        return [random.randint(a, x), random.randint(b, y)]
+
+
+sol = Solution([[-2, -2, 1, 1], [2, 2, 4, 6]])
+print(sol.pick())

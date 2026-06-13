@@ -119,3 +119,41 @@ class TwoFurthestHousesWithDifferentColors:
 
 sol = TwoFurthestHousesWithDifferentColors()
 print(sol.maxDistance([1, 1, 1, 6, 1, 1, 1]))
+
+
+class Solution:
+    def findNthDigit(self, n: int) -> int:
+        def count_digits(x: int) -> int:
+            total = 0
+            length = 1
+            start = 1
+
+            while start <= x:
+                end = min(x, start * 10 - 1)
+                total += (end - start + 1) * length
+
+                length += 1
+                start *= 10
+
+            return total
+
+        # Binary search smallest number whose prefix has at least n digits
+        left, right = 1, n
+
+        while left < right:
+            mid = (left + right) // 2
+
+            if count_digits(mid) >= n:
+                right = mid
+            else:
+                left = mid + 1
+
+        num = left
+
+        # digits before this number
+        before = count_digits(num - 1)
+
+        # position inside str(num)
+        idx = n - before - 1
+
+        return int(str(num)[idx])

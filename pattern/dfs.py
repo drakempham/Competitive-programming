@@ -170,3 +170,32 @@ class Solution:
 
 sol = Solution()
 print(sol.lexicalOrder(108))
+class Solution:
+    def generateValidStrings(self, n: int, k: int) -> list[str]:
+        ans = []
+        temp_path = []
+
+        def dfs(pos: int, curr_cost: int, is_prev_one: bool):
+            if curr_cost > k:
+                return
+
+            if pos == n:
+                ans.append(''.join(map(str, temp_path)))
+                return
+
+            # append 0
+            temp_path.append(0)
+            dfs(pos+1, curr_cost, False)
+            temp_path.pop()
+
+            if not is_prev_one:
+                temp_path.append(1)
+                dfs(pos+1, curr_cost+pos, True)
+                temp_path.pop()
+
+        dfs(0, 0, False)
+        return ans
+
+
+sol = Solution()
+print(sol.generateValidStrings(3, 1))
