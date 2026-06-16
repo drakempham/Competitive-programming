@@ -1,37 +1,18 @@
-from collections import defaultdict
-
-
 class Solution:
-    def getLength(self, nums: list[int]) -> int:
-        n = len(nums)
-        ans = 0
-
-        for l in range(n):
-            freq = defaultdict(int)
-            freq_count = defaultdict(int)
-
-            for r in range(l, n):
-                curr = nums[r]
-                old_freq = freq[curr]
-
-                if old_freq > 0:  # need to delete
-                    freq_count[old_freq] -= 1
-                    if freq_count[old_freq] == 0:
-                        del freq_count[old_freq]
-
-                freq[curr] += 1
-                freq_count[freq[curr]] += 1
-
-                curr_len = r - l + 1
-                if len(freq) == 1:
-                    ans = max(ans, curr_len)
-                elif len(freq_count) == 2:
-                    x, y = freq_count.keys()
-
-                    if max(x, y) == 2*min(x, y):
-                        ans = max(ans, curr_len)
-        return ans
+    def processStr(self, s: str) -> str:
+        res = []
+        for c in s:
+            if 'a' <= c <= 'z':
+                res.append(c)
+            elif c == '*':
+                if res:
+                    res.pop()
+            elif c == '#':
+                res.extend(res[:])
+            else:  # %
+                res.reverse()
+        return ''.join(res)
 
 
 sol = Solution()
-print(sol.getLength([5, 5, 5, 5]))
+print(sol.processStr("a#b%*"))
