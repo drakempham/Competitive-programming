@@ -1,18 +1,27 @@
-def findMinPlatforms(AT: list[int], DT: list[int], n: int) -> int:
-    AT.sort()
-    DT.sort()
+import sys
 
-    first_ptr = 0
-    second_ptr = 0
-    curr = 0
-    max_p = 0
 
-    while first_ptr < n:
-        if AT[first_ptr] <= DT[second_ptr]:
-            curr += 1
-            max_p = max(max_p, curr)
-            first_ptr += 1
-        else:
-            curr -= 1
-            second_ptr += 1
-    return max_p
+def solve():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    t = data[0]
+    ans = []
+    p = 1
+
+    for _ in range(t):
+        m = data[p]
+        n = data[p + 1]
+        p += 2
+
+        # Max number of matches that are NOT losses
+        x = min(m, n)
+
+        # Need: n - x = 2 * wins, so n - x must be even
+        if (n - x) & 1:
+            x -= 1
+
+        ans.append(str(m - x))
+
+    sys.stdout.write("\n".join(ans))
+
+
+solve()

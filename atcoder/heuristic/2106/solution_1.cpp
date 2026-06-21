@@ -1,3 +1,4 @@
+#pragma GCC optimize("O3,unroll-loops")
 #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
 #include <iostream>
 #include <vector>
@@ -6,39 +7,40 @@
 #include <chrono>
 
 using namespace std;
-int N, M, K;
-string grid[20];
-int c_type[400];
-vector<int> e_cels;
 
 struct Tim {
     chrono::high_resolution_clock::time_point start;
     Tim() { start = chrono::high_resolution_clock::now(); }
-    double elapse() {
+    double elapsed() {
         return chrono::duration<double>(chrono::high_resolution_clock::now() - start).count();
     }
 };
 
-uint32_t xor1() {
+uint32_t x12() {
     static uint32_t x = 123456789, y = 362436069, z = 521288629, w = 88675123;
     uint32_t t = x ^ (x << 11);
     x = y; y = z; z = w;
     return w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
 }
 
-double rn() { return (xor1() * 2.3283064365386963e-10); }
+double rnd() { return (x12() * 2.3283064365386963e-10); }
 
+int N, M, K;
+string grid[20];
+int cell_type[400];
+vector<int> empty_cells;
 
-struct Do {
+struct Door {
     int u, v;
     int g;
 };
 
-struct Sw {
+struct Switch {
     int u;
     int type;
 };
 
+// Cấu trúc dữ liệu dùng chung để giảm cấp phát động
 int dist_arr[409600];
 int seen[409600];
 int current_token = 0;
@@ -48,19 +50,14 @@ int q_mask[409600];
 int adj[400][4];
 int num_adj[400];
 
-int bfs(const vector<Do>& doors, const vector<Sw>& switches) {
+// Khởi tạo mảng toàn cục, chỉ set -1 ĐÚNG MỘT LẦN duy nhất
+int door_map[400][4];
+int switch_at[400];
+
+int bfs(const vector<Door>& doors, const vector<Switch>& switches) {
     current_token++;
     
-    int switch_at[400];
-    for (int i = 0; i < 400; ++i) switch_at[i] = -1;
-    for (const auto& s : switches) {
-        switch_at[s.u] = s.type;
-    }
-
-    int door_map[400][4];
-    for (int i = 0; i < 400; ++i) {
-        for (int j = 0; j < 4; ++j) door_map[i][j] = -1;
-    }
+    // SETUP: Chỉ ghi đè dữ liệu lên những ô có cửa/công tắc
     for (const auto& d : doors) {
         for (int i = 0; i < num_adj[d.u]; ++i) {
             if (adj[d.u][i] == d.v) door_map[d.u][i] = d.g;
@@ -69,6 +66,24 @@ int bfs(const vector<Do>& doors, const vector<Sw>& switches) {
             if (adj[d.v][i] == d.u) door_map[d.v][i] = d.g;
         }
     }
+    for (const auto& s : switches) {
+        switch_at[s.u] = s.type;
+    }
+
+    // LAMBDA TEARDOWN: Hoàn tác trạng thái bộ nhớ siêu tốc (không dùng memset)
+    auto teardown = [&]() {
+        for (const auto& d : doors) {
+            for (int i = 0; i < num_adj[d.u]; ++i) {
+                if (adj[d.u][i] == d.v) door_map[d.u][i] = -1;
+            }
+            for (int i = 0; i < num_adj[d.v]; ++i) {
+                if (adj[d.v][i] == d.u) door_map[d.v][i] = -1;
+            }
+        }
+        for (const auto& s : switches) {
+            switch_at[s.u] = -1;
+        }
+    };
 
     int head = 0, tail = 0;
     q_u[tail] = 0;
@@ -84,14 +99,17 @@ int bfs(const vector<Do>& doors, const vector<Sw>& switches) {
         int u = q_u[head];
         int mask = q_mask[head];
         head++;
-        int u_idx = u * 1024 + mask;
+        int u_idx = (u << 10) | mask; // Dịch bit thay vì u * 1024
         int d = dist_arr[u_idx];
 
-        if (u == target_u) return d;
+        if (u == target_u) {
+            teardown();
+            return d;
+        }
 
         if (switch_at[u] != -1) {
             int new_mask = mask ^ (1 << switch_at[u]);
-            int new_idx = u * 1024 + new_mask;
+            int new_idx = (u << 10) | new_mask;
             if (seen[new_idx] != current_token) {
                 seen[new_idx] = current_token;
                 dist_arr[new_idx] = d + 1; 
@@ -107,14 +125,14 @@ int bfs(const vector<Do>& doors, const vector<Sw>& switches) {
             bool can_pass = true;
             
             if (g != -1) {
-                int k = g / 2;
-                bool is_open_init = (g % 2 == 0);
-                bool is_pressed = (mask >> k) & 1;
-                if (is_open_init == is_pressed) can_pass = false;
+                // Tối ưu bitwise branchless cực hạn
+                if ( (((g & 1) ^ 1) ^ ((mask >> (g >> 1)) & 1)) == 0 ) {
+                    can_pass = false;
+                }
             }
 
             if (can_pass) {
-                int v_idx = v * 1024 + mask;
+                int v_idx = (v << 10) | mask;
                 if (seen[v_idx] != current_token) {
                     seen[v_idx] = current_token;
                     dist_arr[v_idx] = d + 1; 
@@ -125,23 +143,25 @@ int bfs(const vector<Do>& doors, const vector<Sw>& switches) {
             }
         }
     }
+    
+    teardown();
     return -1;
 }
 
-int p_dist[400];
-void p_bfs(int start) {
-    for (int i = 0; i < 400; ++i) p_dist[i] = -1;
+int plain_bfs_dist[400];
+void plain_bfs(int start) {
+    for (int i = 0; i < 400; ++i) plain_bfs_dist[i] = -1;
     int q[400];
     int h = 0, t = 0;
     q[t++] = start;
-    p_dist[start] = 0;
+    plain_bfs_dist[start] = 0;
     
     while(h < t) {
         int u = q[h++];
         for (int i = 0; i < num_adj[u]; ++i) {
             int v = adj[u][i];
-            if (p_dist[v] == -1) {
-                p_dist[v] = p_dist[u] + 1;
+            if (plain_bfs_dist[v] == -1) {
+                plain_bfs_dist[v] = plain_bfs_dist[u] + 1;
                 q[t++] = v;
             }
         }
@@ -152,42 +172,46 @@ void solve() {
     Tim timer;
     if (!(cin >> N >> M >> K)) return;
     
+    // Chuẩn bị biến toàn cục sạch sẽ
+    for (int i = 0; i < 400; ++i) {
+        switch_at[i] = -1;
+        for (int j = 0; j < 4; ++j) door_map[i][j] = -1;
+    }
+    
     for (int i = 0; i < N; ++i) {
         cin >> grid[i];
         for (int j = 0; j < N; ++j) {
             if (grid[i][j] == '.') {
-                c_type[i * N + j] = 0;
-                e_cels.push_back(i * N + j);
+                cell_type[i * N + j] = 0;
+                empty_cells.push_back(i * N + j);
             } else {
-                c_type[i * N + j] = 1;
+                cell_type[i * N + j] = 1;
             }
         }
     }
 
     for (int u = 0; u < 400; ++u) {
         num_adj[u] = 0;
-        if (c_type[u] == 1) continue;
+        if (cell_type[u] == 1) continue;
         int r = u / 20, c = u % 20;
         int dr[] = {-1, 1, 0, 0};
-
-
         int dc[] = {0, 0, -1, 1};
         for (int i = 0; i < 4; ++i) {
             int nr = r + dr[i], nc = c + dc[i];
             if (nr >= 0 && nr < N && nc >= 0 && nc < N) {
                 int v = nr * N + nc;
-                    if (c_type[v] == 0) {
+                if (cell_type[v] == 0) {
                     adj[u][num_adj[u]++] = v;
                 }
             }
         }
     }
 
-    vector<Do> current_doors;
-    vector<Sw> current_switches;
+    vector<Door> current_doors;
+    vector<Switch> current_switches;
     
-    p_bfs(0);
-        int D_target = p_dist[399];
+    plain_bfs(0);
+    int D_target = plain_bfs_dist[399];
     
     if (D_target != -1) {
         int k_idx = 0;
@@ -199,18 +223,18 @@ void solve() {
             
             vector<pair<int,int>> cut;
             for (int u = 0; u < 400; ++u) {
-                if (p_dist[u] == L) {
+                if (plain_bfs_dist[u] == L) {
                     for (int i = 0; i < num_adj[u]; ++i) {
                         int v = adj[u][i];
-                        if (p_dist[v] == L + 1) cut.push_back({u, v});
+                        if (plain_bfs_dist[v] == L + 1) cut.push_back({u, v});
                     }
                 }
             }
             
             if (cut.size() > 0 && cut.size() <= 5 && current_doors.size() + cut.size() <= M) {
-                    int target_switch = -1;
+                int target_switch = -1;
                 for (int u = 0; u < 400; ++u) {
-                    if (p_dist[u] <= L && init_switch_at[u] == -1 && c_type[u] == 0) {
+                    if (plain_bfs_dist[u] <= L && init_switch_at[u] == -1 && cell_type[u] == 0) {
                         target_switch = u;
                         break;
                     }
@@ -228,7 +252,7 @@ void solve() {
         }
     }
 
-            int current_score = bfs(current_doors, current_switches);
+    int current_score = bfs(current_doors, current_switches);
     if(current_score == -1) {
         current_doors.clear();
         current_switches.clear();
@@ -236,35 +260,32 @@ void solve() {
     }
 
     int best_score = current_score;
-    vector<Do> best_doors = current_doors;
-    vector<Sw> best_switches = current_switches;
+    vector<Door> best_doors = current_doors;
+    vector<Switch> best_switches = current_switches;
 
-    double T0 = 2.0;
+    double T0 = 3.0;
     double T1 = 0.05;
-    double time_limit = 1.95;
+    double time_limit = 1.90; // Hạ xuống 1.90 để đảm bảo tuyệt đối không TLE
     int iter = 0;
 
     while (true) {
-        if ((iter & 127) == 0) {
-            double elapsed = timer.elapse();
+        // Tăng tần suất kiểm tra đồng hồ: 8 vòng lặp check 1 lần
+        if ((iter & 7) == 0) {
+            double elapsed = timer.elapsed();
             if (elapsed > time_limit) break;
         }
         iter++;
 
-        vector<Do> next_doors = current_doors;
-        vector<Sw> next_switches = current_switches;
+        vector<Door> next_doors = current_doors;
+        vector<Switch> next_switches = current_switches;
         
-        int switch_at[400];
-        for (int i = 0; i < 400; ++i) switch_at[i] = -1;
-        for (auto s : next_switches) switch_at[s.u] = s.type;
-        
-        int op = xor1() % 5;
+        int op = x12() % 5;
         bool valid_op = false;
         
         if (op == 0 && next_doors.size() < M) {
-            int u = e_cels[xor1() % e_cels.size()];
+            int u = empty_cells[x12() % empty_cells.size()];
             if (num_adj[u] > 0) {
-                int v = adj[u][xor1() % num_adj[u]];
+                int v = adj[u][x12() % num_adj[u]];
                 bool exists = false;
                 for (const auto& d : next_doors) {
                     if ((d.u == u && d.v == v) || (d.u == v && d.v == u)) {
@@ -272,40 +293,40 @@ void solve() {
                     }
                 }
                 if (!exists) {
-                    next_doors.push_back({u, v, (int)(xor1() % (2 * K))});
+                    next_doors.push_back({u, v, (int)(x12() % (2 * K))});
                     valid_op = true;
                 }
             }
         } else if (op == 1 && !next_doors.empty()) {
-            int idx = xor1() % next_doors.size();
+            int idx = x12() % next_doors.size();
             next_doors[idx] = next_doors.back();
             next_doors.pop_back();
             valid_op = true;
         } else if (op == 2) {
-            int u = e_cels[xor1() % e_cels.size()];
-            int k = xor1() % K;
-            if (switch_at[u] == -1) {
-                if (next_switches.size() < 400) {
-                    next_switches.push_back({u, k});
-                    valid_op = true;
-                }
-            } else {
-                for(auto& s : next_switches) {
-                    if(s.u == u) {
-                        s.type = k;
-                        valid_op = true;
-                        break;
-                    }
+            int u = empty_cells[x12() % empty_cells.size()];
+            int k = x12() % K;
+            bool found = false;
+            for(auto& s : next_switches) {
+                if(s.u == u) {
+                    s.type = k;
+                    found = true;
+                    break;
                 }
             }
+            if (!found && next_switches.size() < 30) { // Giới hạn hợp lý lượng switch
+                next_switches.push_back({u, k});
+                valid_op = true;
+            } else if (found) {
+                valid_op = true;
+            }
         } else if (op == 3 && !next_switches.empty()) {
-            int idx = xor1() % next_switches.size();
+            int idx = x12() % next_switches.size();
             next_switches[idx] = next_switches.back();
             next_switches.pop_back();
             valid_op = true;
         } else if (op == 4 && !next_doors.empty()) {
-                int idx = xor1() % next_doors.size();
-                next_doors[idx].g = xor1() % (2 * K);
+            int idx = x12() % next_doors.size();
+            next_doors[idx].g = x12() % (2 * K);
             valid_op = true;
         }
         
@@ -315,12 +336,10 @@ void solve() {
         
         if (next_score != -1) {
             double diff = next_score - current_score;
-            double temp = T0 * pow(T1 / T0, timer.elapse() / time_limit);
-            if (diff >= 0 || rn() < exp(diff / temp)) {
+            double temp = T0 * pow(T1 / T0, timer.elapsed() / time_limit);
+            if (diff >= 0 || rnd() < exp(diff / temp)) {
                 current_score = next_score;
                 current_doors = next_doors;
-
-
                 current_switches = next_switches;
                 if (current_score > best_score) {
                     best_score = current_score;
@@ -330,6 +349,7 @@ void solve() {
             }
         }
     }
+
     cout << best_doors.size() << "\n";
     for (const auto& d : best_doors) {
         int r1 = d.u / 20, c1 = d.u % 20;
@@ -339,7 +359,8 @@ void solve() {
         int ja = min(c1, c2);
         cout << d_a << " " << ia << " " << ja << " " << d.g << "\n";
     }
-        cout << best_switches.size() << "\n";
+
+    cout << best_switches.size() << "\n";
     for (const auto& s : best_switches) {
         cout << s.u / 20 << " " << s.u % 20 << " " << s.type << "\n";
     }
