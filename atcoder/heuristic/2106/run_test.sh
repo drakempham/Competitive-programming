@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Benchmark runner for AtCoder 2106 - Castle Renovation
-# Compares solution_1 vs solution_2 across multiple test cases
+# Compares solution_1 vs solution_4 across multiple test cases
 #
 # Usage:
 #   ./run_test.sh [NUM_TESTS] [START_SEED]
@@ -34,8 +34,8 @@ echo -e "  ${GREEN}✓${NC} gen compiled"
 g++ -O3 -std=c++17 -march=native -o "$DIR/sol1" "$DIR/solution_1.cpp"
 echo -e "  ${GREEN}✓${NC} solution_1 compiled"
 
-g++ -O3 -std=c++17 -march=native -o "$DIR/sol2" "$DIR/solution_2.cpp"
-echo -e "  ${GREEN}✓${NC} solution_2 compiled"
+g++ -O3 -std=c++17 -march=native -o "$DIR/sol4" "$DIR/solution_example_max_highest_rank.c++"
+echo -e "  ${GREEN}✓${NC} solution_example_max_highest_rank compiled"
 
 echo ""
 
@@ -119,7 +119,7 @@ for i in $(seq 0 $((NUM_TESTS - 1))); do
     fi
 
     # Run solution 2
-    if run_with_timeout "$DIR/sol2" "$INPUT" "$OUT2" 5; then
+    if run_with_timeout "$DIR/sol4" "$INPUT" "$OUT2" 5; then
         RES2=$(python3 "$DIR/judge.py" "$INPUT" "$OUT2" 2>/dev/null || echo "T=ERR, score=0")
         read T2 S2 <<< "$(echo "$RES2" | parse_result)"
     else
