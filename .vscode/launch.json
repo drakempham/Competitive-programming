@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug codechef/solution.cpp",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/codechef/solution",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "preLaunchTask": "build codechef solution"
+    }
+  ]
+}

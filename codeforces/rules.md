@@ -4,4 +4,6 @@ Generate an optimized expert-level C++ solution for the given competitive progra
 
 Provide only the full C++ source code implementing the solution, strictly adhering to the provided template format. Do not include explanations, comments, or extra text.
 
-Always using #include<bits/stdc++.h>
+Always using:
+ #include<bits/stdc++.h>
+ using ll = long long;

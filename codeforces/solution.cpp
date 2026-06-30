@@ -12,12 +12,14 @@ void solve() {
     vector<vector<int>>v(n+1);
     for(int i=0;i<n;i++) {
         int p=lower_bound(b.begin(),b.end(),a[i])-b.begin()+1;
-        if(p>n) {
+            if(p>n) {
             cout<<-1<<'\n';
             return;
         }
-        v[p].push_back(i+1);
+            v[p].push_back(i+1);
     }
+
+
     priority_queue<int,vector<int>,greater<int>>pq;
     vector<int>bit(n+1);
     auto add=[&](int i,int x) {
@@ -25,11 +27,13 @@ void solve() {
     };
     auto sum=[&](int i) {
         int r=0;
-        for(;i;i-=i&-i) r+=bit[i];
+        for(;i;i-=i&-i) {
+            r+=bit[i];
+        }
         return r;
     };
     for(int i=1;i<=n;i++) add(i,1);
-    ll ans=0;
+    ll res=0;
     for(int j=1;j<=n;j++) {
         for(int x:v[j]) pq.push(x);
         if(pq.empty()) {
@@ -38,10 +42,10 @@ void solve() {
         }
         int id=pq.top();
         pq.pop();
-        ans+=sum(id-1);
+        res+=sum(id-1);
         add(id,-1);
     }
-    cout<<ans<<'\n';
+    cout<<res<<'\n';
 }
 int main() {
     ios_base:: sync_with_stdio(false);
